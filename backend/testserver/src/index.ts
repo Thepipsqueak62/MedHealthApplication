@@ -4,7 +4,7 @@ import fastifyCors from "@fastify/cors";
 import {auth} from "./lib/auth";
 import Database from "better-sqlite3";
 const fastify = Fastify({ logger: true });
-const db = new Database("./sqlite.db");
+const db = new Database("../sqlite.db");
 // register user as a real property on every request, defaulting to null
 fastify.decorateRequest("user", null);
 
