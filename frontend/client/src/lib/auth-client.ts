@@ -5,6 +5,9 @@ import {ac, admin, doctor, nurse} from "./permissions";
 export const authClient = createAuthClient({
     baseURL: 'http://localhost:4000',
     plugins: [
-        adminClient({ ac, roles: { admin, doctor, nurse } }),
+        adminClient({ ac, roles: { admin, doctor, nurse } }
+        ),
     ],
 })
+
+
