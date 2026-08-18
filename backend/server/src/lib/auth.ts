@@ -11,4 +11,18 @@ export const auth = betterAuth({
     plugins: [
         adminPlugin({ ac, roles: { admin, doctor, nurse } }),
     ],
+    user:{
+        additionalFields:{
+            phoneNumber: {
+                type: "string",
+                required: false,
+                input: true,
+            },
+            dateOfBirth:{
+                type:"string",
+                required:false,
+                input:true,
+            }
+        }
+    }
 });
