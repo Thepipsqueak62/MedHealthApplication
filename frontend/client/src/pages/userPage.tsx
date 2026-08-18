@@ -19,14 +19,23 @@ const UserPage = () => {
 
     return (
         <div>
-            <p>WELCOME TO THE USER PAGE</p>
             {user && (
-                <p>
-                    Logged in as {user.name} ({user.role})
-                    {user.email}|{user.dateOfBirth}|{user.phoneNumber}
-                </p>
+                <div>
+                    <div>
+                        Welcome {user.name} to your workspace
+                        <p>Role{user.role}</p>
+                        <p>Email: {user.email}</p>
+                        <p>PhoneNumber: {user.phoneNumber}</p>
+                        <p>Date Of Birth: {user.dateOfBirth}</p>
+                        <p>Created At Date: {new Date(user.createdAt).toLocaleString()}</p>
+                        <p>Last Updated: {new Date(user.updatedAt).toLocaleString()}</p>
+                        <p>isEmailVerified: {user.emailVerified ?"Yes":"No"}</p>
+                        <p>User id: {user.id}</p>
+                    </div>
 
+                </div>
             )}
+
             <Button onClick={handleSignOut}>
                 LOGOUT
             </Button>
