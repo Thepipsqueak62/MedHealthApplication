@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { authClient } from "@/lib/auth-client.ts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button.tsx";
-import {useUserStore} from "@/store/Userstore.ts";
+import { Loader } from "lucide-react";
 
 interface ICustomSignUpFields {
     phoneNumber?: string;
@@ -15,15 +15,19 @@ interface ICustomSignUpFields {
 
 function LoginPage() {
     const navigate = useNavigate();
-    const setUser = useUserStore((s) => s.setUser);
-    const status = useUserStore((s) => s.status);
-    const setStatus = useUserStore((s) => s.setStatus);
-
+    const { data: session, isPending } = authClient.useSession();
+    const [status, setStatus] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [username, setUsername] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("");
     const [dateOfBirth, setDateOfBirth] = useState("");
+
+    if (isPending) return <Loader/>;
+
+    if (session?.user) {
+        return <Navigate to={session.user.role === "admin" ? "/admin/workspace" : "/user/workspace"} replace />;
+    }
 
     async function handleSignUp() {
         const { data, error } = await authClient.signUp.email({
@@ -39,33 +43,24 @@ function LoginPage() {
             return;
         }
 
-        setUser(data.user as unknown as ReturnType<typeof useUserStore.getState>["user"]);
         setStatus(`Signed up successfully ${data.user.email}`);
         navigateAfterLogin(data.user.role);
     }
 
     async function handleSignIn() {
-        const { data, error } = await authClient.signIn.email({
-            email,
-            password,
-        });
+        const { data, error } = await authClient.signIn.email({ email, password });
 
         if (error) {
             setStatus(`Error: ${error.message}`);
             return;
         }
 
-        setUser(data.user as unknown as ReturnType<typeof useUserStore.getState>["user"]);
         setStatus(`Signed in: ${data.user.email}`);
         navigateAfterLogin(data.user.role);
     }
 
     function navigateAfterLogin(role?: string | null) {
-        if (role === "admin") {
-            navigate("/admin");
-        } else {
-            navigate("/user");
-        }
+        navigate(role === "admin" ? "/admin/workspace" : "/user/workspace");
     }
 
     return (
@@ -93,29 +88,16 @@ function LoginPage() {
 
                     <div className="flex flex-col gap-1.5">
                         <Label htmlFor="phoneNumber">Phone Number</Label>
-                        <Input
-                            id="phoneNumber"
-                            type="tel"
-                            placeholder="(555) 555-5555"
-                            onChange={e => setPhoneNumber(e.target.value)}
-                        />
+                        <Input id="phoneNumber" type="tel" placeholder="(555) 555-5555" onChange={e => setPhoneNumber(e.target.value)} />
                     </div>
 
                     <div className="flex flex-col gap-1.5">
                         <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                        <Input
-                            id="dateOfBirth"
-                            type="date"
-                            onChange={e => setDateOfBirth(e.target.value)}
-                        />
+                        <Input id="dateOfBirth" type="date" onChange={e => setDateOfBirth(e.target.value)} />
                     </div>
 
-                    <Button type="button" onClick={handleSignIn} variant="secondary" className="w-full">
-                        Sign In
-                    </Button>
-                    <Button type="button" onClick={handleSignUp} className="w-full mt-2">
-                        Sign Up
-                    </Button>
+                    <Button type="button" onClick={handleSignIn} variant="secondary" className="w-full">Sign In</Button>
+                    <Button type="button" onClick={handleSignUp} className="w-full mt-2">Sign Up</Button>
                 </form>
 
                 <p className="mt-4 text-sm text-muted-foreground">{status}</p>

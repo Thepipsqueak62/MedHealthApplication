@@ -1,26 +1,30 @@
-import { Link } from "react-router-dom";
-import {useUserStore} from "@/store/Userstore.ts";
-import { Button } from "@/components/ui/button.tsx";
+import { authClient } from "@/lib/auth-client.ts";
+import {Link, useNavigate} from "react-router-dom";
+import {Button} from "@/components/ui/button.tsx";
 
 function HomePage() {
-    const user = useUserStore((s) => s.user);
+    const { data: session, isPending } = authClient.useSession();
+    const navigate = useNavigate();
+
+    if (isPending) return <div>Loading...</div>;
+
+    if (!session?.user) {
+        return <Link to="/login">Sign in</Link>;
+    }
+
+    const workspacePath = session.user.role === "admin" ? "/admin/workspace" : "/user/workspace";
 
     return (
-        <div className="max-w-sm mx-auto mt-20 text-center">
-            <h1 className="text-xl font-semibold mb-4">MedTrax</h1>
+        <div>
+            <p>Welcome, {session.user.name}</p>
+            <div>Please Contact HR at the link below if u have any questions</div>
+            <div>
+                <Link className={"underline text-blue-200"} to={"/hrcontact"}>Contact HR</Link>
+            </div>
+            <Button onClick={()=> navigate(workspacePath)}>
+                Go to WorkSpace
+            </Button>
 
-            {user ? (
-                <div className="flex flex-col gap-2">
-                    <p>Signed in as {user.name} ({user.role})</p>
-                    <Link to={user.role === "admin" ? "/admin" : "/user"}>
-                        <Button className="w-full">Go to my dashboard</Button>
-                    </Link>
-                </div>
-            ) : (
-                <Link to="/login">
-                    <Button className="w-full">Sign in</Button>
-                </Link>
-            )}
         </div>
     );
 }
