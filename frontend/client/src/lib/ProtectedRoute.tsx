@@ -1,19 +1,23 @@
+// lib/ProtectedRoute.tsx
 import { Navigate, Outlet } from "react-router-dom";
-import {useUserStore} from "@/store/Userstore.ts";
+import { authClient } from "@/lib/auth-client.ts";
+import {useEffect} from "react";
 
-function ProtectedRoute({ allowedRoles }: { allowedRoles?: string[] }) {
-    const user = useUserStore((s) => s.user);
-    const isLoading = useUserStore((s) => s.isLoading);
+type Role = "admin" | "user" | "doctor" | "nurse";
 
-    if (isLoading) return <div>Loading...</div>; // avoid flicker/false redirect
-
-    if (!user) return <Navigate to="/login" replace />;
-
-    if (allowedRoles && !allowedRoles.includes(user.role ?? "")) {
-        return <Navigate to="/unauthorized" replace />;
-    }
-
-    return <Outlet/>;
+interface ProtectedRouteProps {
+    allowedRoles?: Role[];
 }
 
-export default ProtectedRoute;
+export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
+    const { data: session, isPending,refetch } = authClient.useSession();
+    useEffect(() => {
+        refetch();
+    })
+
+    if (isPending) {return <div>Loading...</div>;}
+    if (!session?.user) {return <Navigate to="/login" replace />;}
+    if (allowedRoles && !allowedRoles.includes(session.user.role as Role)) {return <Navigate to="/unauthorized" replace />;}
+
+    return <Outlet />;
+}
