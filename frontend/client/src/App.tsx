@@ -1,141 +1,55 @@
-import { useState } from "react";
-import {authClient} from "@/lib/auth-client.ts";
-import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
-import { ModeToggle } from "@/components/mode-toggle";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import {Button} from "@/components/ui/button.tsx";
+import { useEffect } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { authClient } from "@/lib/auth-client.ts";
+import {useUserStore} from "@/store/Userstore.ts";
+import HomePage from "@/pages/HomePage.tsx";
+import {ModeToggle} from "@/components/mode-toggle.tsx";
+import LoginPage from "@/pages/LoginPage.tsx";
+import ProtectedRoute from "@/lib/ProtectedRoute.tsx";
+import UserPage from "@/pages/userPage.tsx";
+import AdminPage from "@/pages/adminPage.tsx";
 
 
 function App() {
-  const [status, setStatus] = useState("");
-  const [session, setSession] = useState<any>(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
+  const setUser = useUserStore((s) => s.setUser);
+  const setStatus = useUserStore((s) => s.setStatus);
+  const setLoading = useUserStore((s) => s.setLoading);
+  const clearUser = useUserStore((s) => s.clearUser);
 
-  async function handleSignUp() {
-    const { data, error } = await authClient.signUp.email({
-      email: email,
-      password: password,
-      name: username,
-    });
-
-    setStatus(
-        error
-            ? `Error: ${error.message}`
-            : `Signed up successfully ${data.user.email}`
-    );
-  }
-
-  async function handleSignIn() {
-    const { data, error } = await authClient.signIn.email({
-      email: email,
-      password: password,
-    });
-
-    if (error) {
-      setStatus(`Error: ${error.message}`);
-      return;
-    }
-
-    setSession(data);
-    setStatus(`Signed in: ${data.user.email}`);
-  }
-
-  async function handleGetSession() {
-    const { data, error } = await authClient.getSession();
-
-    if (error) {
-      setStatus(`Error: ${error.message}`);
-      return;
-    }
-
-    if (data) {
-      setSession(data);
-      setStatus(`Session active: ${data.user.email}`);
-    } else {
-      setSession(null);
-      setStatus("No session");
-    }
-  }
-
-  async function handleSignOut() {
-    const { error } = await authClient.signOut();
-
-    setSession(null);
-
-    setStatus(
-        error ? `Error: ${error.message}` : "Signed out"
-    );
-  }
+  // one-time session bootstrap on app load — the server is the source of
+  // truth for who's logged in, so we always re-check rather than trusting
+  // any previously cached store state
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await authClient.getSession();
+      if (error || !data) {
+        clearUser();
+      } else {
+        setUser(data.user as unknown as ReturnType<typeof useUserStore.getState>["user"]);
+        setStatus(`Session active: ${data.user.email}`);
+      }
+      setLoading(false);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-      <div>
+      <BrowserRouter>
         <ModeToggle/>
+        <Routes>
+          <Route path="/" element={<HomePage/>} />
+          <Route path="/login" element={<LoginPage/>} />
+          <Route path="/unauthorized" element={<div>Not authorized</div>} />
 
-        <div>WELCOME TO MED TRAX TESTING</div>
+          <Route element={<ProtectedRoute />}>
+            <Route path="/user" element={<UserPage/>} />
+          </Route>
 
-        <Card className=" max-w-sm mx-auto mt-20">
-          <CardHeader>
-            <CardTitle className="text-xl">Welcome to MedTrax</CardTitle>
-          </CardHeader>
-
-          <CardContent>
-            <form className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="you@example.com" onChange={e => setEmail(e.target.value)} />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" placeholder="••••••••" onChange={e => setPassword(e.target.value)} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="username">Username</Label>
-                <Input id="username" type="username" placeholder="username" onChange={e => setUsername(e.target.value)} />
-              </div>
-
-
-              <Button onClick={handleSignIn} variant="secondary" className="w-full">
-                Sign In
-              </Button>
-              <Button onClick={handleSignUp} className="w-full mt-2">
-                Sign Up
-              </Button>
-
-              <div className="flex items-center justify-between mt-2 text-sm">
-                <Button
-                    onClick={handleGetSession}
-                    variant="link"
-                    className="px-0 h-auto"
-                >
-                  Check session
-                </Button>
-                <Button
-                    onClick={handleSignOut}
-                    variant="destructive"
-                    size="sm"
-                >
-                  Sign Out
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-
-
-        <button onClick={handleGetSession}>CHECK SESSION</button>
-
-        {session?.user && (
-            <div>
-              Logged in as {session.user.role}
-            </div>
-        )}
-
-        <p>{status}</p>
-      </div>
+          <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+            <Route path="/admin" element={<AdminPage/>} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
   );
 }
 
